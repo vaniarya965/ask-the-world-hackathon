@@ -1,0 +1,64 @@
+import requests
+
+API_KEY = "dcadf3fa8eb0855bc64082cdb4d106b64a75c83dcccb7e47a495bc9be2701e30"
+
+def search_nearby(query, location="Mumbai, Maharashtra, India"):
+    url = "https://serpapi.com/search"
+    params = {
+        "engine": "google_local",
+        "q": query,
+        "location": location,
+        "api_key": API_KEY,
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+    results = data.get("local_results", [])
+    if not results:
+        print("No results found. Check your API key or try a different query.")
+        return []
+    print(f"\nTop results for '{query}' near {location}:\n")
+    for i, place in enumerate(results[:5], start=1):
+        name = place.get("title", "Unknown name")
+        address = place.get("address", "No address listed")
+        hours = place.get("hours", "Hours not listed")
+        print(f"{i}. {name}")
+        print(f"   Address: {address}")
+        print(f"   Hours: {hours}\n")
+    return results
+
+
+def search_general(query):
+    url = "https://serpapi.com/search"
+    params = {"engine": "google", "q": query, "api_key": API_KEY}
+    response = requests.get(url, params=params)
+    data = response.json()
+    answer_box = data.get("answer_box", {})
+    if answer_box:
+        answer = answer_box.get("answer") or answer_box.get("snippet")
+        if answer:
+            print(f"\nDirect answer for '{query}':\n{answer}\n")
+            return answer
+    organic_results = data.get("organic_results", [])
+    if not organic_results:
+        print("No results found. Check your API key or try a different query.")
+        return None
+    top = organic_results[0]
+    print(f"\nTop result for '{query}':\n{top.get('title')}\n{top.get('snippet')}\n")
+    return top.get("snippet")
+
+
+LOCAL_TRIGGER_WORDS = ["near me", "nearby", "open now", "closest", "nearest"]
+
+def route_query(query):
+    lowered = query.lower()
+    if any(trigger in lowered for trigger in LOCAL_TRIGGER_WORDS):
+        print(f"(Routing '{query}' -> local/places search)")
+        return search_nearby(query)
+    else:
+        print(f"(Routing '{query}' -> general search)")
+        return search_general(query)
+
+
+if __name__ == "__main__":
+    route_query("pharmacy near me")
+    route_query("what is the capital of India")
